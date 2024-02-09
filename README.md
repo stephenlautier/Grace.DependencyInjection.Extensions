@@ -1,3 +1,9 @@
+```
+dotnet pack -c release -p:SymbolPackageFormat=snupkg -o ./artifacts
+cd ./artifacts
+dotnet nuget push "*.nupkg" -s local
+```
+
 # Extensions for using Grace in ASP.Net Core
 
 Using Grace in an ASP.Net Core application is really simple, add the [Grace.AspNetCore.Hosting](https://www.nuget.org/packages/Grace.AspNetCore.Hosting) package. Then add the following to your project

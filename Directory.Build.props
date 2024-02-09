@@ -1,6 +1,8 @@
 <Project>
   <PropertyGroup>
-    <Authors>Ian Johnson</Authors>    
+    <Authors>Ian Johnson</Authors>
     <LangVersion>latest</LangVersion>
+    <Version>8.0.0-stla.1</Version>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 </Project>
