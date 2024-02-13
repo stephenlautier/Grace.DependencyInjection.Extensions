@@ -48,7 +48,7 @@ namespace Grace.DependencyInjection.Extensions.Tests
         }
 
         [Fact]
-        public async Task ScopedDispose()
+        public async Task Scope_DisposeAsync_ShouldNotDisposeSingleton()
         {
             var services = new ServiceCollection()
                 .AddKeyedSingleton<StrategyIndexController>("hots", (sp, key) => new(key as string))
@@ -56,20 +56,17 @@ namespace Grace.DependencyInjection.Extensions.Tests
                 ;
             var providers = CreateServiceProvider(services);
 
-            var controller = providers.GetKeyedService<StrategyIndexController>("hots");
-            var index = providers.GetService<StrategyIndex>();
+            var rootSingletonController = providers.GetKeyedService<StrategyIndexController>("hots");
+            var rootScopedStrategy = providers.GetService<StrategyIndex>();
 
             var serviceScope = providers.CreateScope();
 
-            var index2 = serviceScope.ServiceProvider.GetService<StrategyIndex>();
+            var scopedStrategy = serviceScope.ServiceProvider.GetService<StrategyIndex>();
 
-            var serviceScope2 = providers.CreateScope();
+            var scopeSingletonController = serviceScope.ServiceProvider.GetKeyedService<StrategyIndexController>("hots");
 
-            var index3 = serviceScope2.ServiceProvider.GetService<StrategyIndex>();
-            var controller2 = serviceScope2.ServiceProvider.GetKeyedService<StrategyIndexController>("hots");
-
-            Assert.NotEqual(index2, index3);
-            Assert.Equal(controller, controller2);
+            Assert.NotEqual(rootScopedStrategy, scopedStrategy);
+            Assert.Equal(rootSingletonController, scopeSingletonController);
 
             //serviceScope.Dispose();
 
@@ -82,7 +79,6 @@ namespace Grace.DependencyInjection.Extensions.Tests
                     disposable.Dispose();
                     break;
             }
-            serviceScope2.Dispose();
 
         }
     }
