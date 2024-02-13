@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Specification;
 using System;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Grace.DependencyInjection.Extensions.Tests
@@ -47,7 +48,7 @@ namespace Grace.DependencyInjection.Extensions.Tests
         }
 
         [Fact]
-        public void ScopedDispose()
+        public async Task ScopedDispose()
         {
             var services = new ServiceCollection()
                 .AddKeyedSingleton<StrategyIndexController>("hots", (sp, key) => new(key as string))
@@ -70,8 +71,19 @@ namespace Grace.DependencyInjection.Extensions.Tests
             Assert.NotEqual(index2, index3);
             Assert.Equal(controller, controller2);
 
-            serviceScope.Dispose();
+            //serviceScope.Dispose();
+
+            switch (serviceScope)
+            {
+                case IAsyncDisposable asyncDisposable:
+                    await asyncDisposable.DisposeAsync();
+                    break;
+                case IDisposable disposable:
+                    disposable.Dispose();
+                    break;
+            }
             serviceScope2.Dispose();
+
         }
     }
 }
