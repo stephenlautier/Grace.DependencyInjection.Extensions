@@ -9,10 +9,14 @@ namespace Grace.DependencyInjection.Extensions.Tests
     {
         protected override IServiceProvider CreateServiceProvider(IServiceCollection serviceCollection)
         {
-            void Configuration(InjectionScopeConfiguration x) => x.Behaviors.AllowInstanceAndFactoryToReturnNull = true;
+            void Configuration(InjectionScopeConfiguration x)
+            {
+                x.Behaviors.AllowInstanceAndFactoryToReturnNull = true;
+                x.AutoRegisterUnknown = false;
+            }
 
-            //return new DependencyInjectionContainer(Configuration)
-            return new DependencyInjectionContainer()
+            return new DependencyInjectionContainer(Configuration)
+            //return new DependencyInjectionContainer()
                 .Populate(serviceCollection);
         }
 
@@ -22,12 +26,15 @@ namespace Grace.DependencyInjection.Extensions.Tests
             var services = new ServiceCollection()
                 //.AddSingleton(sp => new NamedService<StrategyIndex> { Name = "strat1", Value = new StrategyIndex() })
                 //.AddSingleton(sp => new NamedService<StrategyIndex> { Name = "strat2", Value = new StrategyIndex() })
-                .AddSingleton(sp => new NamedService<IHeroesIndex> { Name = "wow", Value = new HeroesIndex() })
+                //.AddSingleton(sp => new NamedService<IHeroesIndex> { Name = "wow", Value = new HeroesIndex() })
                 //.AddKeyedSingleton("strat", (sp, k) => new NamedService<StrategyIndex> { Name = "statA", Value = new StrategyIndex() })
                 //.AddKeyedSingleton("strat", (sp, k) => new NamedService<StrategyIndex> { Name = "statB", Value = new StrategyIndex() })
                 //.AddSingleton(sp => new NamedService<IHeroesIndex> { Name = "name", Value = new HeroesIndex() })
+                //.AddSingleton(sp => new NamedService<IHeroesIndex> { Name = "name", Value = new HeroesIndex() })
                 ;
             var providers = CreateServiceProvider(services);
+
+            var strategy = providers.GetService<StrategyIndex>();
 
             var q = providers.GetServices<NamedService<IHeroesIndex>>();// ?? Enumerable.Empty<NamedService<IHeroesIndex>>();
             Assert.NotEmpty(q);
@@ -38,13 +45,48 @@ namespace Grace.DependencyInjection.Extensions.Tests
             // returns empty when no services are registered (expected)
             var stratsKeyed = providers.GetKeyedServices<NamedService<StrategyIndex>>("strat");
         }
+
+        [Fact]
+        public void ScopedDispose()
+        {
+            var services = new ServiceCollection()
+                .AddKeyedSingleton<StrategyIndexController>("hots", (sp, key) => new(key as string))
+                .AddScoped<StrategyIndex>()
+                ;
+            var providers = CreateServiceProvider(services);
+
+            var controller = providers.GetKeyedService<StrategyIndexController>("hots");
+            var index = providers.GetService<StrategyIndex>();
+
+            var serviceScope = providers.CreateScope();
+
+            var index2 = serviceScope.ServiceProvider.GetService<StrategyIndex>();
+
+            var serviceScope2 = providers.CreateScope();
+
+            var index3 = serviceScope2.ServiceProvider.GetService<StrategyIndex>();
+            var controller2 = serviceScope2.ServiceProvider.GetKeyedService<StrategyIndexController>("hots");
+
+            Assert.NotEqual(index2, index3);
+            Assert.Equal(controller, controller2);
+
+            serviceScope.Dispose();
+            serviceScope2.Dispose();
+        }
     }
 }
 
-public class NamedService<T>
+public class NamedService<TService>
 {
-    public string Name { get; set; }
-    public T Value { get; set; }
+    public NamedService(string name, TService service)
+    {
+        Name = name;
+        Service = service;
+    }
+
+
+    public string Name { get; }
+    public TService Service { get; }
 }
 
 public interface IHeroesIndex
@@ -55,7 +97,20 @@ public class HeroesIndex : IHeroesIndex
 {
 
 }
-public class StrategyIndex
+public class StrategyIndex : IDisposable
 {
+    public void Dispose()
+    {
+        //throw new NotImplementedException();
+    }
+}
 
+public class StrategyIndexController(string key) : IDisposable
+{
+    public string Key { get; } = key;
+
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
 }
